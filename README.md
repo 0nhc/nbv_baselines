@@ -2,9 +2,6 @@
 
 ```sh
 sudo apt install liborocos-kdl-dev
-# follow instructions here to install pykdl: https://github.com/orocos/orocos_kinematics_dynamics/blob/master/python_orocos_kdl/INSTALL.md
-# or
-
 mkdir -p ws/src && cd ws/src
 git clone https://github.com/0nhc/active_grasp.git
 conda create -n active_grasp python=3.8
