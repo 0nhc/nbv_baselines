@@ -1,3 +1,5 @@
+# Updated installation steps fo my PC environment
+
 ```sh
 sudo apt install liborocos-kdl-dev
 # follow instructions here to install pykdl: https://github.com/orocos/orocos_kinematics_dynamics/blob/master/python_orocos_kdl/INSTALL.md
@@ -11,11 +13,11 @@ pip install -r requirements.txt
 conda install libffi==3.3
 conda install conda-forge::python-orocos-kdl
 cd ..
-git clone https://github.com/ethz-asl/vgn.git -b devel
+git clone https://github.com/0nhc/vgn.git -b devel
 cd vgn
 pip install -r requirements.txt
 cd ..
-git clone https://github.com/mbreyer/robot_helpers.git
+git clone https://github.com/0nhc/robot_helpers.git
 cd ..
 rosdep install --from-paths src --ignore-src -r -y
 catkin build
