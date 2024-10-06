@@ -1,3 +1,10 @@
 numba
 pybullet==2.7.9
 trimesh
+empy==3.3.4
+jupyter-client==7.4.4
+rospkg
+scikit-image
+opencv-python
+numpy==1.22.0
+pyassimp

@@ -20,4 +20,12 @@
     <depend>std_msgs</depend>
     <depend>trac_ik</depend>
     <depend>vgn</depend>
+    <depend>chomp_motion_planner</depend>
+    <depend>moveit_planners_chomp</depend>
+    <depend>pilz_industrial_motion</depend>
+    <depend>franka_msgs</depend>
+    <depend>franka_gripper</depend>
+    <depend>kdl_parser</depend>
+    <depend>kdl_parser_py</depend>
+    <depend>ros_numpy</depend>
 </package>

@@ -1,3 +1,26 @@
+```sh
+sudo apt install liborocos-kdl-dev
+# follow instructions here to install pykdl: https://github.com/orocos/orocos_kinematics_dynamics/blob/master/python_orocos_kdl/INSTALL.md
+# or
+
+mkdir -p ws/src && cd ws/src
+git clone https://github.com/0nhc/active_grasp.git
+conda create -n active_grasp python=3.8
+cd active_grasp && conda activate active_grasp
+pip install -r requirements.txt
+conda install libffi==3.3
+conda install conda-forge::python-orocos-kdl
+cd ..
+git clone https://github.com/ethz-asl/vgn.git -b devel
+cd vgn
+pip install -r requirements.txt
+cd ..
+git clone https://github.com/mbreyer/robot_helpers.git
+cd ..
+rosdep install --from-paths src --ignore-src -r -y
+catkin build
+```
+
 # Closed-Loop Next-Best-View Planning for Target-Driven Grasping
 
 This repository contains the implementation of our IROS 2022 submission, _"Closed-Loop Next-Best-View Planning for Target-Driven Grasping"_. [[Paper](http://arxiv.org/abs/2207.10543)][[Video](https://youtu.be/67W_VbSsAMQ)]
