@@ -1,5 +1,5 @@
 bt_sim:
-  gui: False
+  gui: True
   gripper_force: 10
   scene: random
 
