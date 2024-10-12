@@ -1,0 +1,66 @@
+# Train config file
+
+settings:
+  general:
+    seed: 0
+    cuda_visible_devices: "0,1,2,3,4,5,6,7"
+    device: cuda
+    test_dir: ""
+    print: True
+    parallel: True
+
+  experiment:
+    name: test_inference
+    root_dir: "experiments"
+    model_path: "/home/zhengxiao-han/Downloads/full_149_241009.pth"
+    use_cache: True
+    small_batch_overfit: False
+    
+  test:
+    batch_size: 96
+    dataset_list:
+      - name: synthetic_test_sample
+        source: nbv1
+        data_type: sample
+        synthetic: True
+        ratio: 1.0
+        batch_size: 96
+        num_workers: 8
+
+  results:
+    save_data_keys: ["target_name","src_rot_mat"]
+    save_output_keys: ["in_process_sample"]
+
+  pipeline: # module_type: name
+    pts_encoder: pointnet
+    view_finder: gradient_field
+
+datasets:
+  general:
+    data_dir: "/mnt/d/Datasets"
+    score_limit: 0.3
+    target_pts_num: 1024
+    scene_pts_num: 16384
+    canonical: False
+    rgb_feat_cache: True
+    
+
+modules:
+  general:
+    pts_channels: 3
+    feature_dim: 1024
+    per_point_feature: False
+  pts_encoder:
+    pointnet:
+    pointnet++:
+      params_name: light
+  view_finder:
+    gradient_field:
+      pose_mode: rot_matrix
+      regression_head: Rx_Ry
+      sample_mode: ode
+      sample_repeat: 50
+      sampling_steps: 500
+      sde_mode: ve
+  rgb_encoder:
+    dinov2:
