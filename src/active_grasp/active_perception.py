@@ -23,6 +23,7 @@ class InferenceEngine():
     def __init__(self, config_path):
         ''' Config Manager '''
         ConfigManager.load_config_with(config_path)
+        # ConfigManager.print_config()
 
         ''' Pytorch Seed '''
         seed = ConfigManager.get("settings", "general", "seed")
@@ -31,9 +32,9 @@ class InferenceEngine():
 
         ''' Pipeline '''
         # self.pipeline_config = {'pts_encoder': 'pointnet', 'view_finder': 'gradient_field'}
-        self.pipeline_config = ConfigManager.get("settings", "pipeline")
+        # self.pipeline_config = ConfigManager.get("settings", "pipeline")
         self.device = ConfigManager.get("settings", "general", "device")
-        self.pipeline = Pipeline(self.pipeline_config)
+        self.pipeline = Pipeline(config_path)
         self.parallel = ConfigManager.get("settings","general","parallel")
         if self.parallel and self.device == "cuda":
             self.pipeline = torch.nn.DataParallel(self.pipeline)

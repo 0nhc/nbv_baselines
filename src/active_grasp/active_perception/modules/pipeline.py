@@ -18,9 +18,10 @@ class Pipeline(nn.Module):
     TRAIN_MODE: str = "train"
     TEST_MODE: str = "test"
 
-    def __init__(self, pipeline_config):
+    def __init__(self, config_path):
         super(Pipeline, self).__init__()
-
+        ConfigManager.load_config_with(config_path)
+        pipeline_config = ConfigManager.get("settings", "pipeline")
         self.modules_config = ConfigManager.get("modules")
         self.device = ConfigManager.get("settings", "general", "device")
         self.rgb_feat_cache = ConfigManager.get("datasets", "general", "rgb_feat_cache")
