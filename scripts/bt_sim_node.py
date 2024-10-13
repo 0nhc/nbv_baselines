@@ -323,6 +323,8 @@ class CameraPlugin(Plugin):
         self.info_pub = rospy.Publisher(topic, CameraInfo, queue_size=10)
         topic = self.name + "/depth/image_rect_raw"
         self.depth_pub = rospy.Publisher(topic, Image, queue_size=10)
+        topic = self.name + "/color/image_rect_raw"
+        self.rgb_pub = rospy.Publisher(topic, Image, queue_size=10)
 
     def update(self):
         stamp = rospy.Time.now()
@@ -332,7 +334,7 @@ class CameraPlugin(Plugin):
         msg.header.stamp = stamp
         self.info_pub.publish(msg)
 
-        _, depth, _ = self.camera.get_image()
+        color, depth, mask = self.camera.get_image()
 
         if self.cam_noise:
             depth = apply_noise(depth)
@@ -340,6 +342,10 @@ class CameraPlugin(Plugin):
         msg = self.cv_bridge.cv2_to_imgmsg((1000 * depth).astype(np.uint16))
         msg.header.stamp = stamp
         self.depth_pub.publish(msg)
+
+        msg = self.cv_bridge.cv2_to_imgmsg((color).astype(np.uint8), encoding='rgb8')
+        msg.header.stamp = stamp
+        self.rgb_pub.publish(msg)
 
 
 class MockActionsPlugin(Plugin):
