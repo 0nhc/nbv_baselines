@@ -73,6 +73,7 @@ class BtSimNode:
             SwitchController,
             self.switch_controller,
         )
+        rospy.Service("get_target_seg_id", Trigger, self.get_target_seg_id)
 
     def seed(self, req):
         self.sim.seed(req.seed)
@@ -86,6 +87,11 @@ class BtSimNode:
         bbox = self.sim.reset()
         self.activate_plugins()
         return ResetResponse(to_bbox_msg(bbox))
+    
+    def seed(self, req):
+        self.sim.seed(req.seed)
+        rospy.loginfo(f"Seeded the rng with {req.seed}.")
+        return SeedResponse()
 
     def switch_controller(self, req):
         for controller in req.stop_controllers:
