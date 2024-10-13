@@ -325,6 +325,8 @@ class CameraPlugin(Plugin):
         self.depth_pub = rospy.Publisher(topic, Image, queue_size=10)
         topic = self.name + "/color/image_rect_raw"
         self.rgb_pub = rospy.Publisher(topic, Image, queue_size=10)
+        topic = self.name + "/segmentation/image_rect_raw"
+        self.seg_pub = rospy.Publisher(topic, Image, queue_size=10)
 
     def update(self):
         stamp = rospy.Time.now()
@@ -334,7 +336,7 @@ class CameraPlugin(Plugin):
         msg.header.stamp = stamp
         self.info_pub.publish(msg)
 
-        color, depth, mask = self.camera.get_image()
+        color, depth, seg = self.camera.get_image()
 
         if self.cam_noise:
             depth = apply_noise(depth)
@@ -343,9 +345,13 @@ class CameraPlugin(Plugin):
         msg.header.stamp = stamp
         self.depth_pub.publish(msg)
 
-        msg = self.cv_bridge.cv2_to_imgmsg((color).astype(np.uint8), encoding='rgb8')
+        msg = self.cv_bridge.cv2_to_imgmsg(color.astype(np.uint8), encoding='rgb8')
         msg.header.stamp = stamp
         self.rgb_pub.publish(msg)
+
+        msg = self.cv_bridge.cv2_to_imgmsg(seg.astype(np.uint8), encoding='mono8')
+        msg.header.stamp = stamp
+        self.seg_pub.publish(msg)
 
 
 class MockActionsPlugin(Plugin):
