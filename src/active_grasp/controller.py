@@ -36,7 +36,7 @@ class GraspController:
         self.min_z_dist = rospy.get_param("~camera/min_z_dist")
         self.control_rate = rospy.get_param("~control_rate")
         self.linear_vel = rospy.get_param("~linear_vel")
-        self.move_arm_time = rospy.get_param("~move_arm_time")
+        self.move_to_target_threshold = rospy.get_param("~move_to_target_threshold")
         self.policy_rate = rospy.get_param("policy/rate")
 
     def init_service_proxies(self):
@@ -113,8 +113,17 @@ class GraspController:
             target_seg_id = self.get_target_id(TargetIDRequest()).id
             self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
             # Wait for the robot to move to its desired camera pose
-            ticks = self.move_arm_time*self.policy_rate
-            for i in range(ticks):
+            moving_to_The_target = True
+            while(moving_to_The_target):
+                depth_img, seg_image, pose, q = self.get_state()
+                current_p = pose.as_matrix()[:3,3]
+                target_p = self.policy.x_d.as_matrix()[:3,3]
+                linear_d = np.sqrt((current_p[0]-target_p[0])**2+
+                                   (current_p[1]-target_p[1])**2+
+                                   (current_p[2]-target_p[2])**2)
+                if(linear_d < self.move_to_target_threshold):
+                    # Arrived
+                    moving_to_The_target = False
                 r.sleep()
 
         # Wait for a zero command to be sent to the robot.
