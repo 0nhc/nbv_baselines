@@ -16,6 +16,7 @@ grasp_controller:
     frame_id: camera_depth_optical_frame
     info_topic: /camera/depth/camera_info
     depth_topic: /camera/depth/image_rect_raw
+    seg_topic: /camera/segmentation/image_rect_raw
     min_z_dist: 0.3
 
 cartesian_velocity_controller:

@@ -25,6 +25,20 @@ cd <path-to-your-ws>/src/active_grasp/src/active_grasp/active_perception/modules
 pip install -e .
 ```
 
+# Updated Features
+* Added our baseline: src/active_grasp/active_perception_policy.py
+* Added RGB and Segmentation image publishers. The segmentation ID 1 corresponds to the grasping target object.
+
+
+
+
+
+
+
+
+
+
+
 # Closed-Loop Next-Best-View Planning for Target-Driven Grasping
 
 This repository contains the implementation of our IROS 2022 submission, _"Closed-Loop Next-Best-View Planning for Target-Driven Grasping"_. [[Paper](http://arxiv.org/abs/2207.10543)][[Video](https://youtu.be/67W_VbSsAMQ)]
