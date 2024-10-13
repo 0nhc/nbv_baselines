@@ -60,9 +60,6 @@ class ActivePerceptionMultiViewPolicy(MultiViewPolicy):
         self.pcdvis = RealTime3DVisualizer()
 
 
-    def activate(self, bbox, view_sphere):
-        super().activate(bbox, view_sphere)
-
     def update(self, img, seg, target_id, x, q):
         if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
             self.done = True

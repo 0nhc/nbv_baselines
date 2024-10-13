@@ -108,23 +108,33 @@ class GraspController:
         self.policy.activate(bbox, self.view_sphere)
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
         r = rospy.Rate(self.policy_rate)
-        while not self.policy.done:
-            depth_img, seg_image, pose, q = self.get_state()
-            target_seg_id = self.get_target_id(TargetIDRequest()).id
-            self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
-            # Wait for the robot to move to its desired camera pose
-            moving_to_The_target = True
-            while(moving_to_The_target):
+
+        if(self.policy.policy_type=="single_view"):
+            while not self.policy.done:
                 depth_img, seg_image, pose, q = self.get_state()
-                current_p = pose.as_matrix()[:3,3]
-                target_p = self.policy.x_d.as_matrix()[:3,3]
-                linear_d = np.sqrt((current_p[0]-target_p[0])**2+
-                                   (current_p[1]-target_p[1])**2+
-                                   (current_p[2]-target_p[2])**2)
-                if(linear_d < self.move_to_target_threshold):
-                    # Arrived
-                    moving_to_The_target = False
+                target_seg_id = self.get_target_id(TargetIDRequest()).id
+                self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
+                # Wait for the robot to move to its desired camera pose
+                moving_to_The_target = True
+                while(moving_to_The_target):
+                    depth_img, seg_image, pose, q = self.get_state()
+                    current_p = pose.as_matrix()[:3,3]
+                    target_p = self.policy.x_d.as_matrix()[:3,3]
+                    linear_d = np.sqrt((current_p[0]-target_p[0])**2+
+                                    (current_p[1]-target_p[1])**2+
+                                    (current_p[2]-target_p[2])**2)
+                    if(linear_d < self.move_to_target_threshold):
+                        # Arrived
+                        moving_to_The_target = False
+                    r.sleep()
+        elif(self.policy.policy_type=="multi_view"):
+            while not self.policy.done:
+                depth_img, seg_image, pose, q = self.get_state()
+                target_seg_id = self.get_target_id(TargetIDRequest()).id
+                self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
                 r.sleep()
+        else:
+            print("Unsupported policy type: "+str(self.policy.policy_type))
 
         # Wait for a zero command to be sent to the robot.
         rospy.sleep(0.2)

@@ -67,6 +67,8 @@ class Policy:
         self.done = False
         self.info = {}
 
+        self.policy_type = "policy"
+
     def calibrate_task_frame(self):
         xyz = np.r_[self.bbox.center[:2] - 0.15, self.bbox.min[2] - 0.05]
         self.T_base_task = Transform.from_translation(xyz)
@@ -106,6 +108,10 @@ def select_best_grasp(grasps, qualities):
 
 
 class SingleViewPolicy(Policy):
+    def activate(self, bbox, view_sphere):
+        super().activate(bbox, view_sphere)
+        self.policy_type = "single_view"
+
     def update(self, img, seg, target_id, x, q):
         linear, _ = compute_error(self.x_d, x)
         if np.linalg.norm(linear) < 0.02:
@@ -143,6 +149,7 @@ class MultiViewPolicy(Policy):
     def activate(self, bbox, view_sphere):
         super().activate(bbox, view_sphere)
         self.qual_hist = np.zeros((self.T,) + (40,) * 3, np.float32)
+        self.policy_type = "multi_view"
 
     def integrate(self, img, x, q):
         self.views.append(x)
