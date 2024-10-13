@@ -40,3 +40,4 @@ nbv_grasp:
 ap_grasp:
   max_views: 80
   ap_config_path: $(find active_grasp)/src/active_grasp/active_perception/configs/local_inference_config.yaml
+  max_inference_num: 50

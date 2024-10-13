@@ -56,6 +56,7 @@ class ActivePerceptionMultiViewPolicy(MultiViewPolicy):
         super().__init__()
         self.max_views = rospy.get_param("ap_grasp/max_views")
         self.ap_config_path = rospy.get_param("ap_grasp/ap_config_path")
+        self.max_inference_num = rospy.get_param("ap_grasp/max_inference_num")
         self.ap_inference_engine = APInferenceEngine(self.ap_config_path)
         self.pcdvis = RealTime3DVisualizer()
 
@@ -66,23 +67,46 @@ class ActivePerceptionMultiViewPolicy(MultiViewPolicy):
         else:
             with Timer("state_update"):
                 self.integrate(img, x, q)
-            with Timer("view_generation"):
+
+            # When policy hasn't produced an available grasp
+            c = 0
+            while(c < self.max_inference_num):
+                # Inference with our model
                 target_points, scene_points = self.depth_image_to_ap_input(img, seg, target_id)
                 ap_input = {'target_pts': target_points,
                             'scene_pts': scene_points}
                 ap_output = self.ap_inference_engine.inference(ap_input)
+                c += 1
                 delta_rot_6d = ap_output['estimated_delta_rot_6d']
 
                 current_cam_pose = torch.from_numpy(x.as_matrix()).float().to("cuda:0")
                 est_delta_rot_mat = self.rotation_6d_to_matrix_tensor_batch(delta_rot_6d)[0]
                 look_at_center = torch.from_numpy(self.bbox.center).float().to("cuda:0")
                 nbv_tensor = self.get_transformed_mat(current_cam_pose, 
-                                                       est_delta_rot_mat, 
-                                                       look_at_center)
+                                                        est_delta_rot_mat, 
+                                                        look_at_center)
                 nbv_numpy = nbv_tensor.cpu().numpy()
                 nbv_transform = Transform.from_matrix(nbv_numpy)
-                self.x_d = nbv_transform
+                x_d = nbv_transform
+
+                # Check if this pose available
+                if(self.solve_cam_ik(self.q0, x_d)):
+                    # self.vis_cam_pose(x_d)
+                    self.x_d = x_d
+                    self.updated = True
+                    print("Found an NBV!")
+                    break
     
+
+    def vis_cam_pose(self, x):
+        # Integrate
+        self.views.append(x)
+        self.vis.path(self.base_frame, self.intrinsic, self.views)
+    
+    def vis_scene_cloud(self, img, x):
+        self.tsdf.integrate(img, self.intrinsic, x.inv() * self.T_base_task)
+        scene_cloud = self.tsdf.get_scene_cloud()
+        self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
 
     def rotation_6d_to_matrix_tensor_batch(self, d6: torch.Tensor) -> torch.Tensor:
         a1, a2 = d6[..., :3], d6[..., 3:]
@@ -171,6 +195,9 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
     def update(self, img, seg, target_id, x, q):
         # Visualize scene cloud
         self.vis_scene_cloud(img, x)
+
+        # Visualize Initial Camera Pose
+        self.vis_cam_pose(x_d)
 
         # When policy hasn't produced an available grasp
         while(self.updated == False):
