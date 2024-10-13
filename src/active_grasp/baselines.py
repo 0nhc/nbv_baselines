@@ -6,7 +6,7 @@ from .policy import SingleViewPolicy, MultiViewPolicy, compute_error
 class InitialView(SingleViewPolicy):
     def update(self, img, seg, target_id, x, q):
         self.x_d = x
-        super().update(img, x, q)
+        super().update(img, seg, target_id, x, q)
 
 
 class TopView(SingleViewPolicy):

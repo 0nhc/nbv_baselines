@@ -36,6 +36,7 @@ class GraspController:
         self.min_z_dist = rospy.get_param("~camera/min_z_dist")
         self.control_rate = rospy.get_param("~control_rate")
         self.linear_vel = rospy.get_param("~linear_vel")
+        self.move_arm_time = rospy.get_param("~move_arm_time")
         self.policy_rate = rospy.get_param("policy/rate")
 
     def init_service_proxies(self):
@@ -111,8 +112,13 @@ class GraspController:
             depth_img, seg_image, pose, q = self.get_state()
             target_seg_id = self.get_target_id(TargetIDRequest()).id
             self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
-            r.sleep()
-        rospy.sleep(0.2)  # Wait for a zero command to be sent to the robot.
+            # Wait for the robot to move to its desired camera pose
+            ticks = self.move_arm_time*self.policy_rate
+            for i in range(ticks):
+                r.sleep()
+
+        # Wait for a zero command to be sent to the robot.
+        rospy.sleep(0.2)
         self.policy.deactivate()
         timer.shutdown()
         return self.policy.best_grasp

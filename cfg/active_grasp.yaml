@@ -10,8 +10,9 @@ hw:
 grasp_controller:
   base_frame_id: panda_link0
   ee_grasp_offset: [0.0, 0.0, -0.383, 0.924, 0.0, 0.0, 0.065]  # offset to panda_link8
-  control_rate: 30
+  control_rate: 100
   linear_vel: 0.05
+  move_arm_time: 6
   camera:
     frame_id: camera_depth_optical_frame
     info_topic: /camera/depth/camera_info
@@ -28,7 +29,7 @@ vgn:
   qual_threshold: 0.9
 
 policy:
-  rate: 4
+  rate: 2
   window_size: 12
 
 nbv_grasp:

@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path
 import rospy
 from tqdm import tqdm
+import torch
 
 from active_grasp.controller import *
 from active_grasp.policy import make, registry
@@ -14,6 +15,8 @@ from robot_helpers.ros import tf
 
 
 def main():
+    torch.cuda.empty_cache()
+
     rospy.init_node("grasp_controller")
     tf.init()
 
