@@ -18,8 +18,8 @@ class ActivePerceptionPolicy(MultiViewPolicy):
     def activate(self, bbox, view_sphere):
         super().activate(bbox, view_sphere)
 
-    def update(self, img, seg, x, q):
-        self.depth_image_to_ap_input(img, seg)
+    def update(self, img, seg, target_id, x, q):
+        self.depth_image_to_ap_input(img, seg, target_id)
         # if len(self.views) > self.max_views or self.best_grasp_prediction_is_stable():
         #     self.done = True
         # else:
@@ -41,7 +41,7 @@ class ActivePerceptionPolicy(MultiViewPolicy):
 
         #     self.x_d = nbv
     
-    def depth_image_to_ap_input(self, depth_img, seg_img):
+    def depth_image_to_ap_input(self, depth_img, seg_img, target_id):
         K = self.intrinsic.K
         depth_shape = depth_img.shape
         seg_shape = seg_img.shape

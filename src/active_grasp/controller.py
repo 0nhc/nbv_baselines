@@ -9,7 +9,7 @@ import trimesh
 
 from .bbox import from_bbox_msg
 from .timer import Timer
-from active_grasp.srv import Reset, ResetRequest
+from active_grasp.srv import *
 from robot_helpers.ros import tf
 from robot_helpers.ros.conversions import *
 from robot_helpers.ros.panda import PandaArmClient, PandaGripperClient
@@ -43,6 +43,7 @@ class GraspController:
         self.switch_controller = rospy.ServiceProxy(
             "controller_manager/switch_controller", SwitchController
         )
+        self.get_target_id = rospy.ServiceProxy("get_target_seg_id", TargetID)
 
     def init_robot_connection(self):
         self.arm = PandaArmClient()
@@ -108,7 +109,8 @@ class GraspController:
         r = rospy.Rate(self.policy_rate)
         while not self.policy.done:
             depth_img, seg_image, pose, q = self.get_state()
-            self.policy.update(depth_img, seg_image, pose, q)
+            target_seg_id = self.get_target_id(TargetIDRequest())
+            self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
             r.sleep()
         rospy.sleep(0.2)  # Wait for a zero command to be sent to the robot.
         self.policy.deactivate()

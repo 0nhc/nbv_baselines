@@ -4,7 +4,7 @@ from .policy import SingleViewPolicy, MultiViewPolicy, compute_error
 
 
 class InitialView(SingleViewPolicy):
-    def update(self, img, x, q):
+    def update(self, img, seg, target_id, x, q):
         self.x_d = x
         super().update(img, x, q)
 
@@ -22,7 +22,7 @@ class TopTrajectory(MultiViewPolicy):
         self.x_d = self.view_sphere.get_view(0.0, 0.0)
         self.done = False if self.solve_cam_ik(self.q0, self.x_d) else True
 
-    def update(self, img, x, q):
+    def update(self, img, seg, target_id, x, q):
         self.integrate(img, x, q)
         linear, _ = compute_error(self.x_d, x)
         if np.linalg.norm(linear) < 0.02:
@@ -33,5 +33,5 @@ class FixedTrajectory(MultiViewPolicy):
     def activate(self, bbox, view_sphere):
         pass
 
-    def update(self, img, x, q):
+    def update(self, img, seg, target_id, x, q):
         pass

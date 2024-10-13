@@ -75,7 +75,7 @@ class Policy:
         rospy.sleep(1.0)  # Wait for tf tree to be updated
         self.vis.roi(self.task_frame, 0.3)
 
-    def update(self, img, seg, x, q):
+    def update(self, img, seg, target_id, x, q):
         raise NotImplementedError
 
     def filter_grasps(self, out, q):
@@ -106,7 +106,7 @@ def select_best_grasp(grasps, qualities):
 
 
 class SingleViewPolicy(Policy):
-    def update(self, img, seg, x, q):
+    def update(self, img, seg, target_id, x, q):
         linear, _ = compute_error(self.x_d, x)
         if np.linalg.norm(linear) < 0.02:
             self.views.append(x)
