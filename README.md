@@ -1,6 +1,7 @@
 # Updated installation steps fo my PC environment
 
 ```sh
+# Install Active Grasp
 sudo apt install liborocos-kdl-dev
 mkdir -p ws/src && cd ws/src
 git clone https://github.com/0nhc/active_grasp.git
@@ -18,6 +19,10 @@ git clone https://github.com/0nhc/robot_helpers.git
 cd ..
 rosdep install --from-paths src --ignore-src -r -y
 catkin build
+
+# Install Active Perception
+cd <path-to-your-ws>/src/active_grasp/src/active_grasp/active_perception/modules/module_lib/pointnet2_utils/pointnet2
+pip install -e .
 ```
 
 # Closed-Loop Next-Best-View Planning for Target-Driven Grasping

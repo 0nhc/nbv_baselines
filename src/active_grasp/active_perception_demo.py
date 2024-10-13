@@ -13,10 +13,10 @@ for i in range(2):
 PROJECT_ROOT = path
 sys.path.append(PROJECT_ROOT)
 
-from active_perception.configs.config import ConfigManager
-from active_perception.modules.pipeline import Pipeline
+from .active_perception.configs.config import ConfigManager
+from .active_perception.modules.pipeline import Pipeline
 
-class InferenceEngine():
+class APInferenceEngine():
     RESULTS_DIR_NAME: str = 'results'
     LOG_DIR_NAME: str = 'log'
 
@@ -58,7 +58,6 @@ class InferenceEngine():
         self.pipeline.eval()
         with torch.no_grad():
             output = self.pipeline(data, Pipeline.TEST_MODE)
-        
         return output
 
 
@@ -84,7 +83,7 @@ if __name__ == "__main__":
     }
 
     ''' Inference '''
-    infenrence_engine = InferenceEngine(args.config)
+    infenrence_engine = APInferenceEngine(args.config)
     output = infenrence_engine.inference(test_data)
     print(output.keys())
     print(output['estimated_delta_rot_6d'])
