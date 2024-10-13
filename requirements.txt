@@ -8,3 +8,4 @@ scikit-image
 opencv-python
 numpy==1.22.0
 pyassimp
+open3d==0.18.0

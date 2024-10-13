@@ -71,12 +71,6 @@ if __name__ == "__main__":
     ''' Initialize Test Data '''
     test_scene = torch.rand(1, 1024, 3).to("cuda:0")
     test_target = torch.rand(1, 1024, 3).to("cuda:0")
-    test_delta_rot_6d = torch.rand(1, 6).to("cuda:0")
-    a = test_delta_rot_6d[:, :3]
-    b = test_delta_rot_6d[:, 3:]
-    a_norm = a / a.norm(dim=1, keepdim=True)
-    b_norm = b / b.norm(dim=1, keepdim=True)
-    normalized_test_delta_rot_6d = torch.cat((a_norm, b_norm), dim=1)
     test_data = {
         'target_pts': test_target,
         'scene_pts': test_scene,
