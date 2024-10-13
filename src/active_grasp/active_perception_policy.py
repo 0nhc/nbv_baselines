@@ -59,6 +59,9 @@ class ActivePerceptionPolicy(MultiViewPolicy):
         for i in range(img_shape[0]):
             for j in range(img_shape[1]):
                 seg_id = seg_img[i, j]
+                # print(seg_id)
+                if(int(seg_id) == int(target_id)):
+                    print("woahhhhhhhhhhhhhhhhh!")
 
 
     def best_grasp_prediction_is_stable(self):

@@ -109,7 +109,7 @@ class GraspController:
         r = rospy.Rate(self.policy_rate)
         while not self.policy.done:
             depth_img, seg_image, pose, q = self.get_state()
-            target_seg_id = self.get_target_id(TargetIDRequest())
+            target_seg_id = self.get_target_id(TargetIDRequest()).id
             self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
             r.sleep()
         rospy.sleep(0.2)  # Wait for a zero command to be sent to the robot.
@@ -122,7 +122,7 @@ class GraspController:
         msg = copy.deepcopy(self.latest_depth_msg)
         depth_img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
         msg = copy.deepcopy(self.latest_seg_msg)
-        seg_img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32)
+        seg_img = self.cv_bridge.imgmsg_to_cv2(msg)
         pose = tf.lookup(self.base_frame, self.cam_frame, msg.header.stamp)
         return depth_img, seg_img, pose, q
 
