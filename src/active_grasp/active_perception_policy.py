@@ -91,7 +91,6 @@ class ActivePerceptionMultiViewPolicy(MultiViewPolicy):
 
                 # Check if this pose available
                 if(self.solve_cam_ik(self.q0, x_d)):
-                    # self.vis_cam_pose(x_d)
                     self.x_d = x_d
                     self.updated = True
                     print("Found an NBV!")
@@ -197,7 +196,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         self.vis_scene_cloud(img, x)
 
         # Visualize Initial Camera Pose
-        self.vis_cam_pose(x_d)
+        self.vis_cam_pose(x)
 
         # When policy hasn't produced an available grasp
         while(self.updated == False):
