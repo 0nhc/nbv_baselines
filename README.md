@@ -1,3 +1,8 @@
+# Roadmap
+* Debug with model output pose
+* Change simulation scenes
+* Interface with GS-Net
+
 # Updated installation steps fo my PC environment
 
 ```sh
