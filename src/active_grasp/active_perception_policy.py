@@ -209,7 +209,11 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
 
             current_cam_pose = torch.from_numpy(x.as_matrix()).float().to("cuda:0")
             est_delta_rot_mat = self.rotation_6d_to_matrix_tensor_batch(delta_rot_6d)[0]
-            look_at_center = torch.from_numpy(self.bbox.center).float().to("cuda:0")
+
+            target_points_np = target_points.cpu().numpy()[0,:,:]
+            central_point_of_target = np.mean(target_points_np, axis=0)
+
+            look_at_center = torch.from_numpy(central_point_of_target).float().to("cuda:0")
             nbv_tensor = self.get_transformed_mat(current_cam_pose, 
                                                     est_delta_rot_mat, 
                                                     look_at_center)

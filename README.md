@@ -1,5 +1,4 @@
 # Roadmap
-* Change the lookat point to teh pointcloud average xyz instead of bbox center
 * Debug with model output pose
 * Change simulation scenes
 * Interface with GS-Net
