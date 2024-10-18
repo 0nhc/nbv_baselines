@@ -2,6 +2,7 @@ bt_sim:
   gui: True
   gripper_force: 10
   scene: random
+  # scene: $(find active_grasp)/cfg/sim/challenging_scene_1.yaml
 
 hw:
   roi_calib_file: $(find active_grasp)/cfg/hw/T_base_tag.txt

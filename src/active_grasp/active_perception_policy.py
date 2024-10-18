@@ -162,7 +162,7 @@ class ActivePerceptionMultiViewPolicy(MultiViewPolicy):
         
         target_points = np.asarray(target_points)
         target_points = target_points.reshape(1, target_points.shape[0], 3)
-        self.pcdvis.update_points(target_points)
+        # self.pcdvis.update_points(target_points)
         target_points = torch.from_numpy(target_points).float().to("cuda:0")
         scene_points = np.asarray(scene_points)
         scene_points = scene_points.reshape(1, scene_points.shape[0], 3)
@@ -212,8 +212,9 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
 
             target_points_np = target_points.cpu().numpy()[0,:,:]
             central_point_of_target = np.mean(target_points_np, axis=0)
-
             look_at_center = torch.from_numpy(central_point_of_target).float().to("cuda:0")
+            print(f"Central Point of Target: {central_point_of_target}, length: {np.linalg.norm(central_point_of_target)}")
+            print(f"camera position: {current_cam_pose[:3, 3]}")
             nbv_tensor = self.get_transformed_mat(current_cam_pose, 
                                                     est_delta_rot_mat, 
                                                     look_at_center)
@@ -320,7 +321,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         
         target_points = np.asarray(target_points)
         target_points = target_points.reshape(1, target_points.shape[0], 3)
-        self.pcdvis.update_points(target_points)
+        # self.pcdvis.update_points(target_points)
         target_points = torch.from_numpy(target_points).float().to("cuda:0")
         scene_points = np.asarray(scene_points)
         scene_points = scene_points.reshape(1, scene_points.shape[0], 3)

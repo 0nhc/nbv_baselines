@@ -1,0 +1,11 @@
+center: [0.5, 0.2, 0.25]
+q:  [0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79]
+objects:
+- object_id: ap_dataset/objects/apple
+  xyz: [0.0, 0.0, 0.2]
+  rpy: [90, 0, 0]
+  scale: 0.001
+- object_id: ap_dataset/occluders/flower_pot_021
+  xyz: [0.0, 0.0, 0.2]
+  rpy: [90, 0, 0]
+  scale: 0.001
