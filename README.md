@@ -1,5 +1,4 @@
 # Roadmap
-* Debug with model output pose
 * Change simulation scenes
 * Interface with GS-Net
 

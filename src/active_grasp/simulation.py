@@ -58,6 +58,13 @@ class Simulation:
         self.vgn = VGN(model_path)
 
     def reset(self):
+        # Wait until the simulation is stable
+        secs = 3.0
+        sleep_ticks = self.rate * secs
+        for i in range(int(sleep_ticks)):
+            p.stepSimulation()
+        
+        # Reset the scene
         valid = False
         while not valid:
             self.set_arm_configuration([0.0, -1.39, 0.0, -2.36, 0.0, 1.57, 0.79])
@@ -66,7 +73,8 @@ class Simulation:
             self.set_arm_configuration(q)
             uid = self.select_target()
             bbox = self.get_target_bbox(uid)
-            valid = self.check_for_grasps(bbox)
+            valid = True
+            # valid = self.check_for_grasps(bbox)
         return bbox
 
     def set_arm_configuration(self, q):
@@ -81,6 +89,9 @@ class Simulation:
         uids, counts = np.unique(mask, return_counts=True)
         mask = np.isin(uids, self.scene.object_uids)  # remove ids of the floor, etc
         uids, counts = uids[mask], counts[mask]
+        # If no objects are detected, try again
+        if(len(uids) == 0 and len(counts) == 0):
+            return self.select_target()
         target_uid = uids[np.argmin(counts)]
         p.changeVisualShape(target_uid, -1, rgbaColor=[1, 0, 0, 1])
         return target_uid
@@ -144,6 +155,10 @@ class Scene:
 
     def add_object(self, urdf, ori, pos, scale=1.0):
         uid = p.loadURDF(str(urdf), pos, ori.as_quat(), globalScaling=scale)
+        collision_shape_data = p.getCollisionShapeData(uid, -1)
+        for shape in collision_shape_data:
+            shape_id = shape[1]  # Get the shape ID
+            p.changeDynamics(uid, shape_id, collisionMargin=0.0001)  # Set collision margin to 0.01
         self.object_uids.append(uid)
         return uid
 
