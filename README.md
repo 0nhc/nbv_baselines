@@ -1,5 +1,4 @@
 # Roadmap
-* Change simulation scenes
 * Interface with GS-Net
 
 # Updated installation steps fo my PC environment

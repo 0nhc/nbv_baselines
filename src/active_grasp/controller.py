@@ -107,7 +107,7 @@ class GraspController:
         self.view_sphere = ViewHalfSphere(bbox, self.min_z_dist)
         self.policy.activate(bbox, self.view_sphere)
         timer = rospy.Timer(rospy.Duration(1.0 / self.control_rate), self.send_vel_cmd)
-        r = rospy.Rate(self.policy_rate)
+        r = rospy.Rate(self.control_rate)
 
         if(self.policy.policy_type=="single_view"):
             while not self.policy.done:
@@ -126,6 +126,9 @@ class GraspController:
                     if(linear_d < self.move_to_target_threshold):
                         # Arrived
                         moving_to_The_target = False
+                    r.sleep()
+                # sleep 3s
+                for i in range(self.control_rate*3):
                     r.sleep()
         elif(self.policy.policy_type=="multi_view"):
             while not self.policy.done:
