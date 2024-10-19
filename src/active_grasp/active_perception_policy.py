@@ -218,8 +218,8 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             look_at_center_T[:3, 3] = look_at_center.cpu().numpy()
             look_at_center_T = current_cam_pose.cpu().numpy() @ look_at_center_T
             look_at_center = torch.from_numpy(look_at_center_T[:3, 3]).float().to("cuda:0")
-            print(f"Central Point of Target: {central_point_of_target}, length: {np.linalg.norm(central_point_of_target)}")
-            print(f"camera position: {current_cam_pose[:3, 3]}")
+            # print(f"Central Point of Target: {central_point_of_target}, length: {np.linalg.norm(central_point_of_target)}")
+            # print(f"camera position: {current_cam_pose[:3, 3]}")
             nbv_tensor = self.get_transformed_mat(current_cam_pose, 
                                                   est_delta_rot_mat, 
                                                   look_at_center)

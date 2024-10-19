@@ -155,10 +155,6 @@ class Scene:
 
     def add_object(self, urdf, ori, pos, scale=1.0):
         uid = p.loadURDF(str(urdf), pos, ori.as_quat(), globalScaling=scale)
-        collision_shape_data = p.getCollisionShapeData(uid, -1)
-        for shape in collision_shape_data:
-            shape_id = shape[1]  # Get the shape ID
-            p.changeDynamics(uid, shape_id, collisionMargin=0.0001)  # Set collision margin to 0.01
         self.object_uids.append(uid)
         return uid
 
