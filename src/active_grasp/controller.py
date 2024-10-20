@@ -113,6 +113,9 @@ class GraspController:
             while not self.policy.done:
                 depth_img, seg_image, pose, q = self.get_state()
                 target_seg_id = self.get_target_id(TargetIDRequest()).id
+                # sleep 1s
+                for i in range(self.control_rate*1):
+                    r.sleep()
                 self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
                 # Wait for the robot to move to its desired camera pose
                 moving_to_The_target = True
@@ -126,9 +129,6 @@ class GraspController:
                     if(linear_d < self.move_to_target_threshold):
                         # Arrived
                         moving_to_The_target = False
-                    r.sleep()
-                # sleep 3s
-                for i in range(self.control_rate*3):
                     r.sleep()
         elif(self.policy.policy_type=="multi_view"):
             while not self.policy.done:

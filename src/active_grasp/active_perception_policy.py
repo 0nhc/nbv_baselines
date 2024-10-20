@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import requests
 import matplotlib.pyplot as plt
 from vgn.grasp import ParallelJawGrasp
+import time
 
 
 class RealTime3DVisualizer:
@@ -239,37 +240,48 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 self.updated = True
                 print("Found an NBV!")
                 return
+            
         # Policy has produced an available nbv and moved to that camera pose
         if(self.updated == True):
-            # Visualize the new camera pose
+            # Request grasping poses from GSNet
             self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
             target_points_list = np.asarray(self.target_points.cpu().numpy())[0].tolist()
+            central_point_of_target = np.mean(target_points_list, axis=0)
             scene_points_list = np.asarray(self.scene_points.cpu().numpy())[0].tolist()
             merged_points_list = target_points_list + scene_points_list
-            gsnet_grasping_poses = np.asarray(self.request_grasping_pose(merged_points_list))
-            current_cam_pose = torch.from_numpy(x.as_matrix()).float().to("cuda:0")
+            # gsnet_input_points = self.crop_pts_sphere(np.asarray(merged_points_list), central_point_of_target)
+            gsnet_input_points = target_points_list
+            gsnet_grasping_poses = np.asarray(self.request_grasping_pose(gsnet_input_points))
+            
             # Convert all grasping poses' reference frame to arm frame
+            current_cam_pose = torch.from_numpy(x.as_matrix()).float().to("cuda:0")
             for gg in gsnet_grasping_poses:
                 T = np.asarray(gg['T'])
                 gg['T'] = current_cam_pose.cpu().numpy() @ T
-            # Convert grasping poses to grasp objects
+
+            # Convert grasping poses to ParallelJawGrasp objects
             grasps = []
             qualities = []
             for gg in gsnet_grasping_poses:
                 T = Transform.from_matrix(np.asarray(gg['T']))
-                width = 0.1
+                width = 0.075
                 grasp = ParallelJawGrasp(T, width)
                 grasps.append(grasp)
                 qualities.append(gg['score'])
+            
+            # Visualize grasps
+            self.vis.grasps(self.base_frame, grasps, qualities)
+            time.sleep(1000000)
             
             # Filter grasps
             filtered_grasps = []
             filtered_qualities = []
             for grasp, quality in zip(grasps, qualities):
                 pose = grasp.pose
-                tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
-                if self.bbox.is_inside(tip):
-                    grasp.pose = pose
+                # tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
+                tip = pose.translation
+                # if self.bbox.is_inside(tip):
+                if(True):
                     q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                     if q_grasp is not None:
                         filtered_grasps.append(grasp)
@@ -281,7 +293,11 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 self.best_grasp = None
                 self.vis.clear_grasp()
             self.done = True
-            
+    
+    def crop_pts_sphere(self, points, crop_center, radius=0.2):
+        crop_mask = np.linalg.norm(points - crop_center, axis=1) < radius
+        return points[crop_mask].tolist()
+    
     def deactivate(self):
         self.vis.clear_ig_views()
         self.updated = False
