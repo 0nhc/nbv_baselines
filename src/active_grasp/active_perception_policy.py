@@ -207,9 +207,9 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         # When policy hasn't produced an available grasp
         while(self.updated == False):
             # Inference with our model
-            self.target_points, scene_points = self.depth_image_to_ap_input(img, seg, target_id)
+            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
             ap_input = {'target_pts': self.target_points,
-                        'scene_pts': scene_points}
+                        'scene_pts': self.scene_points}
             ap_output = self.ap_inference_engine.inference(ap_input)
             delta_rot_6d = ap_output['estimated_delta_rot_6d']
 
@@ -224,8 +224,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             look_at_center_T[:3, 3] = look_at_center.cpu().numpy()
             look_at_center_T = current_cam_pose.cpu().numpy() @ look_at_center_T
             look_at_center = torch.from_numpy(look_at_center_T[:3, 3]).float().to("cuda:0")
-            # print(f"Central Point of Target: {central_point_of_target}, length: {np.linalg.norm(central_point_of_target)}")
-            # print(f"camera position: {current_cam_pose[:3, 3]}")
+            # Get the NBV
             nbv_tensor = self.get_transformed_mat(current_cam_pose, 
                                                   est_delta_rot_mat, 
                                                   look_at_center)
@@ -240,18 +239,47 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 self.updated = True
                 print("Found an NBV!")
                 return
-        # Policy has produced an available nbv
+        # Policy has produced an available nbv and moved to that camera pose
         if(self.updated == True):
-            data = np.asarray(self.target_points.cpu().numpy())[0].tolist()
-            best_grasp_T = np.asarray(self.request_grasping_pose(data))
+            # Visualize the new camera pose
+            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
+            target_points_list = np.asarray(self.target_points.cpu().numpy())[0].tolist()
+            scene_points_list = np.asarray(self.scene_points.cpu().numpy())[0].tolist()
+            merged_points_list = target_points_list + scene_points_list
+            gsnet_grasping_poses = np.asarray(self.request_grasping_pose(merged_points_list))
             current_cam_pose = torch.from_numpy(x.as_matrix()).float().to("cuda:0")
-            best_grasp_T = current_cam_pose.cpu().numpy() @ best_grasp_T
-            pose = Transform.from_matrix(best_grasp_T)
-            width = 0.1
-            grasp = ParallelJawGrasp(pose, width)
-            self.best_grasp = grasp
-            self.vis.grasp(self.base_frame, self.best_grasp, 0.9)
-            # self.generate_grasp(q)
+            # Convert all grasping poses' reference frame to arm frame
+            for gg in gsnet_grasping_poses:
+                T = np.asarray(gg['T'])
+                gg['T'] = current_cam_pose.cpu().numpy() @ T
+            # Convert grasping poses to grasp objects
+            grasps = []
+            qualities = []
+            for gg in gsnet_grasping_poses:
+                T = Transform.from_matrix(np.asarray(gg['T']))
+                width = 0.1
+                grasp = ParallelJawGrasp(T, width)
+                grasps.append(grasp)
+                qualities.append(gg['score'])
+            
+            # Filter grasps
+            filtered_grasps = []
+            filtered_qualities = []
+            for grasp, quality in zip(grasps, qualities):
+                pose = grasp.pose
+                tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
+                if self.bbox.is_inside(tip):
+                    grasp.pose = pose
+                    q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
+                    if q_grasp is not None:
+                        filtered_grasps.append(grasp)
+                        filtered_qualities.append(quality)
+            if len(filtered_grasps) > 0:
+                self.best_grasp, quality = self.select_best_grasp(filtered_grasps, filtered_qualities)
+                self.vis.grasp(self.base_frame, self.best_grasp, quality)
+            else:
+                self.best_grasp = None
+                self.vis.clear_grasp()
             self.done = True
             
     def deactivate(self):
@@ -267,19 +295,6 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         self.tsdf.integrate(img, self.intrinsic, x.inv() * self.T_base_task)
         scene_cloud = self.tsdf.get_scene_cloud()
         self.vis.scene_cloud(self.task_frame, np.asarray(scene_cloud.points))
-
-    def generate_gsnet_grasp(self, q):
-        tsdf_grid = self.tsdf.get_grid()
-        out = self.vgn.predict(tsdf_grid)
-        self.vis.quality(self.task_frame, self.tsdf.voxel_size, out.qual, 0.9)
-        grasps, qualities = self.filter_grasps(out, q)
-
-        if len(grasps) > 0:
-            self.best_grasp, quality = self.select_best_grasp(grasps, qualities)
-            self.vis.grasp(self.base_frame, self.best_grasp, quality)
-        else:
-            self.best_grasp = None
-            self.vis.clear_grasp()
 
     def generate_grasp(self, q):
         tsdf_grid = self.tsdf.get_grid()

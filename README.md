@@ -1,5 +1,5 @@
 # Roadmap
-* Interface with GS-Net
+* GS-Net filter aligned with VGN
 
 # Updated installation steps fo my PC environment
 
