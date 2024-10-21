@@ -12,6 +12,15 @@ import requests
 import matplotlib.pyplot as plt
 from vgn.grasp import ParallelJawGrasp
 import time
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Pose
+import tf
+
+import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import PointCloud2, PointField
+import std_msgs.msg
+import ros_numpy
+
 
 
 class RealTime3DVisualizer:
@@ -192,6 +201,10 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         self.updated = False
         self._base_url = flask_base_url
 
+        # For debugging
+        self.pcd_publisher = rospy.Publisher('/debug_pcd', PointCloud2, queue_size=10)
+        self.grasp_publisher = rospy.Publisher("/grasp_markers", MarkerArray, queue_size=10)
+
 
     def request_grasping_pose(self, data):
         response = requests.post(f"{self._base_url}/get_gsnet_grasp", json=data)
@@ -247,18 +260,29 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
             target_points_list = np.asarray(self.target_points.cpu().numpy())[0].tolist()
             central_point_of_target = np.mean(target_points_list, axis=0)
+            target_points_radius = np.max(np.linalg.norm(target_points_list - central_point_of_target, axis=1))
             scene_points_list = np.asarray(self.scene_points.cpu().numpy())[0].tolist()
             merged_points_list = target_points_list + scene_points_list
-            # gsnet_input_points = self.crop_pts_sphere(np.asarray(merged_points_list), central_point_of_target)
-            gsnet_input_points = target_points_list
+            gsnet_input_points = self.crop_pts_sphere(np.asarray(merged_points_list), 
+                                                      central_point_of_target, 
+                                                      radius=target_points_radius)
+            # gsnet_input_points = target_points_list
+            # gsnet_input_points = merged_points_list
+            self.publish_pointcloud(gsnet_input_points)
             gsnet_grasping_poses = np.asarray(self.request_grasping_pose(gsnet_input_points))
-            
+
+            # DEBUG: publish grasps
+            # self.publish_grasps(gsnet_grasping_poses)
+
             # Convert all grasping poses' reference frame to arm frame
             current_cam_pose = torch.from_numpy(x.as_matrix()).float().to("cuda:0")
             for gg in gsnet_grasping_poses:
-                T = np.asarray(gg['T'])
-                gg['T'] = current_cam_pose.cpu().numpy() @ T
-
+                gg['T'] = current_cam_pose.cpu().numpy().dot(np.asarray(gg['T']))
+                # Now here is a mysterous bug, the grasping poses have to be rotated 
+                # 90 degrees around y-axis to be in the correct reference frame
+                R = np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]])
+                gg['T'][:3, :3] = gg['T'][:3, :3].dot(R)
+            
             # Convert grasping poses to ParallelJawGrasp objects
             grasps = []
             qualities = []
@@ -271,7 +295,6 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             
             # Visualize grasps
             self.vis.grasps(self.base_frame, grasps, qualities)
-            time.sleep(1000000)
             
             # Filter grasps
             filtered_grasps = []
@@ -280,8 +303,8 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 pose = grasp.pose
                 # tip = pose.rotation.apply([0, 0, 0.05]) + pose.translation
                 tip = pose.translation
-                # if self.bbox.is_inside(tip):
-                if(True):
+                if self.bbox.is_inside(tip):
+                # if(True):
                     q_grasp = self.solve_ee_ik(q, pose * self.T_grasp_ee)
                     if q_grasp is not None:
                         filtered_grasps.append(grasp)
@@ -294,6 +317,59 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 self.vis.clear_grasp()
             self.done = True
     
+    def publish_grasps(self, gg):
+        marker_array = MarkerArray()
+        marker_array.markers = []
+        for idx, g in enumerate(gg):
+            g['T'] = np.asarray(g['T'])
+            marker = Marker()
+            marker.header.frame_id = "camera_depth_optical_frame"
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = "grasps"
+            marker.id = idx
+            marker.type = Marker.ARROW
+            marker.action = Marker.ADD
+            marker.pose.position.x = g['T'][0, 3]
+            marker.pose.position.y = g['T'][1, 3]
+            marker.pose.position.z = g['T'][2, 3]
+            q = tf.transformations.quaternion_from_matrix(g['T'])
+            marker.pose.orientation.x = q[0]
+            marker.pose.orientation.y = q[1]
+            marker.pose.orientation.z = q[2]
+            marker.pose.orientation.w = q[3]
+            marker.scale.x = 0.1
+            marker.scale.y = 0.01
+            marker.scale.z = 0.01
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0
+            marker_array.markers.append(marker)
+        self.grasp_publisher.publish(marker_array)
+
+    def publish_pointcloud(self, point_cloud):
+        point_cloud = np.asarray(point_cloud)
+        cloud_msg = self.create_pointcloud_msg(point_cloud)
+        self.pcd_publisher.publish(cloud_msg)
+
+    def create_pointcloud_msg(self, point_cloud):
+        # Define the header
+        header = std_msgs.msg.Header()
+        header.stamp = rospy.Time.now()
+        header.frame_id = 'camera_depth_optical_frame'  # Change this to your desired frame of reference
+
+        # Define the fields for the PointCloud2 message
+        fields = [
+            PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
+        ]
+        
+        # Create the PointCloud2 message
+        cloud_msg = pc2.create_cloud(header, fields, point_cloud)
+
+        return cloud_msg
+
     def crop_pts_sphere(self, points, crop_center, radius=0.2):
         crop_mask = np.linalg.norm(points - crop_center, axis=1) < radius
         return points[crop_mask].tolist()

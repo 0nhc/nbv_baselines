@@ -6,7 +6,8 @@ Panels:
       Expanded:
         - /TF1/Frames1
         - /Markers1/Namespaces1
-      Splitter Ratio: 0.6881287693977356
+        - /Marker1
+      Splitter Ratio: 0.6852940917015076
     Tree Height: 226
   - Class: rviz/Selection
     Name: Selection
@@ -362,6 +363,42 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 239; 41; 41
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic: /debug_pcd
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /grasp_markers
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -390,7 +427,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.7134475111961365
+      Distance: 0.8019989132881165
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -398,17 +435,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.3979946970939636
-        Y: -0.1718180924654007
-        Z: 0.29551374912261963
+        X: 0.5695413947105408
+        Y: -0.03970015048980713
+        Z: 0.45675671100616455
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4653984010219574
+      Pitch: 0.295397013425827
       Target Frame: <Fixed Frame>
-      Yaw: 1.0903979539871216
+      Yaw: 5.118584632873535
     Saved:
       - Class: rviz/Orbit
         Distance: 1.2000000476837158
@@ -448,5 +485,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1095
-  X: 1270
-  Y: 138
+  X: 1260
+  Y: 123
