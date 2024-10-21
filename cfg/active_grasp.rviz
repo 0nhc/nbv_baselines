@@ -69,7 +69,7 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: false
-    - Alpha: 0.20000000298023224
+    - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -427,7 +427,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.8019989132881165
+      Distance: 1.261960744857788
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -486,4 +486,4 @@ Window Geometry:
     collapsed: true
   Width: 1095
   X: 1260
-  Y: 123
+  Y: 86
