@@ -2,7 +2,8 @@ bt_sim:
   gui: True
   gripper_force: 10
   # scene: random
-  scene: $(find active_grasp)/cfg/sim/challenging_scene_2.yaml
+  scene: manual
+  # scene: $(find active_grasp)/cfg/sim/challenging_scene_2.yaml
 
 hw:
   roi_calib_file: $(find active_grasp)/cfg/hw/T_base_tag.txt
@@ -13,7 +14,7 @@ grasp_controller:
   ee_grasp_offset: [0.0, 0.0, -0.383, 0.924, 0.0, 0.0, 0.065]  # offset to panda_link8
   control_rate: 100
   linear_vel: 0.05
-  move_to_target_threshold: 0.05 # meter
+  move_to_target_threshold: 0.01 # meter
   camera:
     frame_id: camera_depth_optical_frame
     info_topic: /camera/depth/camera_info

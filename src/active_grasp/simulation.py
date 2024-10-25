@@ -232,11 +232,57 @@ class RandomScene(Scene):
         return q
 
 
+class ManualScene(Scene):
+    def __init__(self):
+        super().__init__()
+        self.config_path = pkg_root / "cfg/sim"
+        self.scene_index = 0
+        # Visit the directory and read all the yaml files
+        self.scenes = []
+        for file in self.config_path.iterdir():
+            if file.suffix == ".yaml":
+                self.scenes.append(file)
+        self.num_scenes = len(self.scenes)
+    
+    def load_config(self):
+        self.scene = load_yaml(self.scenes[self.scene_index])
+        self.center = np.asarray(self.scene["center"])
+        self.length = 0.3
+        self.origin = self.center - np.r_[0.5 * self.length, 0.5 * self.length, 0.0]
+        
+
+    def generate(self, rng):
+        self.load_config()
+        self.add_support(self.center)
+
+        for object in self.scene["objects"]:
+            urdf = urdfs_dir / object["object_id"] / "model.urdf"
+            ori = Rotation.from_euler("xyz", object["rpy"], degrees=True)
+            pos = self.center + np.asarray(object["xyz"])
+            scale = object.get("scale", 1)
+            if randomize := object.get("randomize", False):
+                angle = rng.uniform(-randomize["rot"], randomize["rot"])
+                ori = Rotation.from_euler("z", angle, degrees=True) * ori
+                b = np.asarray(randomize["pos"])
+                pos += rng.uniform(-b, b)
+            self.add_object(urdf, ori, pos, scale)
+        for _ in range(60):
+            p.stepSimulation()
+        
+        self.scene_index += 1
+        if(self.scene_index >= self.num_scenes):
+            self.scene_index = 0
+
+        return self.scene["q"]
+
+
 def get_scene(scene_id):
     if scene_id.endswith(".yaml"):
         return YamlScene(scene_id)
     elif scene_id == "random":
         return RandomScene()
+    elif scene_id == "manual":
+        return ManualScene()
 
     else:
         raise ValueError("Unknown scene {}.".format(scene_id))

@@ -269,7 +269,11 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             # gsnet_input_points = target_points_list
             # gsnet_input_points = merged_points_list
             self.publish_pointcloud(gsnet_input_points)
-            gsnet_grasping_poses = np.asarray(self.request_grasping_pose(gsnet_input_points))
+            received_points = False
+            while(received_points == False): 
+                gsnet_grasping_poses = np.asarray(self.request_grasping_pose(gsnet_input_points))
+                received_points = True
+                print(gsnet_grasping_poses[0].keys())
 
             # DEBUG: publish grasps
             # self.publish_grasps(gsnet_grasping_poses)
