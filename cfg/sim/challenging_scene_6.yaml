@@ -6,6 +6,6 @@ objects:
   rpy: [0, 0, -45]
   scale: 0.5
 - object_id: active_perception/cabinet2
-  xyz: [0.1, 0.0, 0.0]
-  rpy: [0, 0, 45]
+  xyz: [0.0, 0.0, 0.0]
+  rpy: [0, 0, 135]
   scale: 0.25

@@ -15,6 +15,7 @@ import time
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Pose
 import tf
+from robot_helpers.ros import tf as rhtf
 from sklearn.neighbors import NearestNeighbors
 
 import sensor_msgs.point_cloud2 as pc2
@@ -197,6 +198,10 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         super().__init__()
         self.max_views = rospy.get_param("ap_grasp/max_views")
         self.ap_config_path = rospy.get_param("ap_grasp/ap_config_path")
+        self.crop_min_radius = rospy.get_param("ap_grasp/crop_min_radius")
+        self.crop_radius_step = rospy.get_param("ap_grasp/crop_radius_step")
+        self.crop_max_radius = rospy.get_param("ap_grasp/crop_max_radius")
+        self.num_knn_neighbours = rospy.get_param("ap_grasp/num_knn_neighbours")
         self.ap_inference_engine = APInferenceEngine(self.ap_config_path)
         self.pcdvis = RealTime3DVisualizer()
         self.updated = False
@@ -218,7 +223,6 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
 
         # Visualize Initial Camera Pose
         self.vis_cam_pose(x)
-        self.publish_pointcloud([[0,0,0]])
 
         # When policy hasn't produced an available grasp
         while(self.updated == False):
@@ -226,16 +230,20 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             self.publish_pointcloud([[0,0,0]])
 
             # Inference with our model
-            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id, support_id,
-                                                                                 scene_sample_num=16384, 
-                                                                                 target_sample_num=1024)
+            self.target_points, self.scene_points, _ = self.depth_image_to_ap_input(img, 
+                                                                                    seg, 
+                                                                                    target_id, 
+                                                                                    support_id,
+                                                                                    scene_sample_num=16384, 
+                                                                                    target_sample_num=1024)
             ap_input = {'target_pts': self.target_points,
                         'scene_pts': self.scene_points}
             # save point cloud
             # target_points = self.target_points.cpu().numpy()[0,:,:]
-            scene_points = self.scene_points.cpu().numpy()[0,:,:]
-
-            self.publish_pointcloud(scene_points)
+            self.scene_points_cache = self.scene_points.cpu().numpy()[0]
+            self.cam_pose_cache = rhtf.lookup(self.base_frame, self.cam_frame, rospy.Time.now()).as_matrix()
+            
+            self.publish_pointcloud(self.scene_points_cache)
 
             # time.sleep(10000000)
             # np.savetxt("target_points.txt", target_points, delimiter=",")
@@ -274,18 +282,72 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         # Policy has produced an available nbv and moved to that camera pose
         if(self.updated == True):
             # Request grasping poses from GSNet
-            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id, support_id)
+            self.target_points, self.scene_points, self.all_points = \
+                self.depth_image_to_ap_input(img, seg, target_id, support_id)
             target_points_list = np.asarray(self.target_points.cpu().numpy())[0].tolist()
             central_point_of_target = np.mean(target_points_list, axis=0)
-            target_points_radius = np.max(np.linalg.norm(target_points_list - central_point_of_target, axis=1))
-            scene_points_list = np.asarray(self.scene_points.cpu().numpy())[0].tolist()
-            merged_points_list = target_points_list + scene_points_list
-            gsnet_input_points = self.crop_pts_sphere(np.asarray(merged_points_list), 
-                                                      central_point_of_target, 
-                                                      radius=target_points_radius)
+
+            # Crop points to desired number of points
+            num_points_valid = False
+            target_points_radius = self.crop_min_radius
+            required_num_points = 15000
+            # Merge all points and scene points
+            self.all_points = np.asarray(self.all_points.cpu().numpy())[0]
+            all_points_list = self.all_points.tolist()
+            scene_points_list = self.scene_points_cache.tolist()
+
+            # convert scene_points to current frame
+            self.cam_pose = rhtf.lookup(self.base_frame, self.cam_frame, rospy.Time.now()).as_matrix()
+            for idx, point in enumerate(scene_points_list):
+                point = np.asarray(point)
+                T_point_cam_old = np.array([[1, 0, 0, point[0]],
+                                            [0, 1, 0, point[1]],
+                                            [0, 0, 1, point[2]],
+                                            [0, 0, 0, 1]])
+                # point in arm frame
+                T_point_arm = np.matmul(self.cam_pose_cache, T_point_cam_old)
+                # point in camera frame
+                T_point_cam_new = np.matmul(np.linalg.inv(self.cam_pose),
+                                            T_point_arm)
+                point = T_point_cam_new[:3, 3].T
+                point = point.tolist()
+                scene_points_list[idx] = point
+
+            merged_points_list = scene_points_list + all_points_list
+            merged_points_list = np.asarray(merged_points_list)
+            print("merged_points_list shape: "+str(merged_points_list.shape))
+
+            while not num_points_valid:
+                gsnet_input_points = self.crop_pts_sphere(merged_points_list, 
+                                                          central_point_of_target, 
+                                                          radius=target_points_radius)
+                if(len(gsnet_input_points) >= required_num_points):
+                    num_points_valid = True
+                    # downsample points
+                    gsnet_input_points = np.asarray(gsnet_input_points)
+                    gsnet_input_points = gsnet_input_points[np.random.choice(gsnet_input_points.shape[0], required_num_points, replace=False)]
+                else:
+                    target_points_radius += self.crop_radius_step
+                    if(target_points_radius > self.crop_max_radius):
+                        print("Target points radius exceeds maximum radius")
+                        print("Number of points: "+str(len(gsnet_input_points)))
+                        print("Interpolating points")
+                        # Interpolate points
+                        if(len(gsnet_input_points) < self.num_knn_neighbours+1):
+                            self.best_grasp = None
+                            self.vis.clear_grasp()
+                            self.done = True
+                            return
+                        else:
+                            gsnet_input_points = np.asarray(gsnet_input_points)
+                            num_interpolation = required_num_points - len(gsnet_input_points)
+                            gsnet_input_points = self.interpolate_point_cloud(gsnet_input_points, num_interpolation)
+                            num_points_valid = True
+            gsnet_input_points = gsnet_input_points.tolist()
+
+
             # gsnet_input_points = target_points_list
             # gsnet_input_points = merged_points_list
-            self.publish_pointcloud([[0,0,0]])
             self.publish_pointcloud(gsnet_input_points)
             
             # save point cloud as .txt
@@ -320,7 +382,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 qualities.append(gg['score'])
             
             # Visualize grasps
-            self.vis.grasps(self.base_frame, grasps, qualities)
+            # self.vis.grasps(self.base_frame, grasps, qualities)
             
             # Filter grasps
             filtered_grasps = []
@@ -337,12 +399,13 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                         filtered_qualities.append(quality)
             if len(filtered_grasps) > 0:
                 self.best_grasp, quality = self.select_best_grasp(filtered_grasps, filtered_qualities)
+                # self.vis.clear_grasps()
                 self.vis.grasp(self.base_frame, self.best_grasp, quality)
             else:
                 self.best_grasp = None
                 self.vis.clear_grasp()
             self.done = True
-            self.publish_pointcloud([[0,0,0]])
+            # self.publish_pointcloud([[0,0,0]])
     
     def publish_grasps(self, gg):
         marker_array = MarkerArray()
@@ -432,6 +495,20 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
     def select_best_grasp(self, grasps, qualities):
         i = np.argmax(qualities)
         return grasps[i], qualities[i]
+    
+        # pose = rhtf.lookup(self.base_frame, "panda_link8", rospy.Time.now())  
+        # ee_matrix = pose.as_matrix()
+        # minimum_difference = np.inf
+        # for i in range(len(grasps)-1, -1, -1):
+        #     grasp = grasps[i]
+        #     g_matrix = grasp.pose.as_matrix()
+        #     # calculatr the Frobenius norm (rotation difference)
+        #     rotation_difference = np.linalg.norm(ee_matrix[:3, :3] - g_matrix[:3, :3])
+        #     if rotation_difference < minimum_difference:
+        #         minimum_difference = rotation_difference
+        #         best_grasp = grasp
+        #         best_quality = qualities[i]
+        # return best_grasp, best_quality
 
     def rotation_6d_to_matrix_tensor_batch(self, d6: torch.Tensor) -> torch.Tensor:
         a1, a2 = d6[..., :3], d6[..., 3:]
@@ -457,6 +534,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                                 scene_sample_num=-1, target_sample_num=-1):
         target_points = []
         scene_points = []
+        all_points = []
 
         K = self.intrinsic.K
         depth_shape = depth_img.shape
@@ -481,15 +559,17 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 y = y_mat[i][j]
                 z = z_mat[i][j]
                 
-                # no background and no plane
-                if(int(seg_id) != int(255) and int(seg_id) != int(support_id)):
-                    # This pixel belongs to the scene
-                    scene_points.append([x,y,z])
-                    if(int(seg_id) == int(target_id)):
-                        # This pixel belongs to the target object to be grasped
-                        target_points.append([x,y,z])
+                if(int(seg_id) != int(255)): # no background points
+                    all_points.append([x,y,z])
+                    if(int(seg_id) != int(support_id)): # no support points
+                        # This pixel belongs to the scene
+                        scene_points.append([x,y,z])
+                        if(int(seg_id) == int(target_id)):
+                            # This pixel belongs to the target object to be grasped
+                            target_points.append([x,y,z])
         
         # Sample points
+        all_points = np.asarray(all_points)
         target_points = np.asarray(target_points)
         scene_points = np.asarray(scene_points)
         if scene_sample_num > 0:
@@ -517,12 +597,15 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         
         scene_points = scene_points.reshape(1, scene_points.shape[0], 3)
         scene_points = torch.from_numpy(scene_points).float().to("cuda:0")
+
+        all_points = all_points.reshape(1, all_points.shape[0], 3)
+        all_points = torch.from_numpy(all_points).float().to("cuda:0")
         
-        return target_points, scene_points
+        return target_points, scene_points, all_points
 
     def interpolate_point_cloud(self, points, num_new_points):
         # Fit NearestNeighbors on existing points
-        nbrs = NearestNeighbors(n_neighbors=5).fit(points)
+        nbrs = NearestNeighbors(n_neighbors=self.num_knn_neighbours).fit(points)
         interpolated_points = []
         
         for _ in range(num_new_points):

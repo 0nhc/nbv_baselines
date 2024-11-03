@@ -1,9 +1,9 @@
 bt_sim:
   gui: True
-  gripper_force: 10
+  gripper_force: 100
   # scene: random
   # scene: manual
-  scene: $(find active_grasp)/cfg/sim/challenging_scene_6.yaml
+  scene: $(find active_grasp)/cfg/sim/challenging_scene_1.yaml
 
 hw:
   roi_calib_file: $(find active_grasp)/cfg/hw/T_base_tag.txt
@@ -43,3 +43,8 @@ ap_grasp:
   max_views: 80
   ap_config_path: $(find active_grasp)/src/active_grasp/active_perception/configs/local_inference_config.yaml
   max_inference_num: 50
+  crop_min_radius: 0.2
+  crop_radius_step: 0.05
+  crop_max_radius: 0.5
+  num_knn_neighbours: 5
+

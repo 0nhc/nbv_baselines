@@ -103,6 +103,12 @@ class Simulation:
 
     def get_target_bbox(self, uid):
         aabb_min, aabb_max = p.getAABB(uid)
+        # enlarge the bounding box
+        aabb_min = np.asarray(aabb_min)
+        aabb_max = np.asarray(aabb_max)
+        aabb_min -= 0.0
+        aabb_max += 0.0
+
         return AABBox(aabb_min, aabb_max)
 
     def check_for_grasps(self, bbox):

@@ -11,10 +11,29 @@ red = [1.0, 0.0, 0.0]
 blue = [0, 0.6, 1.0]
 grey = [0.9, 0.9, 0.9]
 
+def create_grasp_marker(frame, grasp, color, ns, id=0, depth=0.05, radius=0.005):
+    # Faster grasp marker using Marker.LINE_LIST
+    pose, w, d, scale = grasp.pose, grasp.width, depth, [radius, 0.0, 0.0]
+    points = [[0, -w / 2, d], [0, -w / 2, 0], [0, w / 2, 0], [0, w / 2, d]]
+    return create_line_strip_marker(frame, pose, scale, color, points, ns, id)
 
 class Visualizer(vgn.rviz.Visualizer):
     def clear_ig_views(self):
         markers = [Marker(action=Marker.DELETE, ns="ig_views", id=i) for i in range(24)]
+        self.draw(markers)
+
+    def clear_grasps(self):
+        markers = [Marker(action=Marker.DELETE, ns="grasps", id=i) for i in range(self.num_grasps)]
+        self.draw(markers)
+        self.num_grasps = 0
+
+    def grasps(self, frame, grasps, qualities, vmin=0.5, vmax=1.0):
+        markers = []
+        self.num_grasps = 0
+        for i, (grasp, quality) in enumerate(zip(grasps, qualities)):
+            color = cm((quality - vmin) / (vmax - vmin))
+            markers.append(create_grasp_marker(frame, grasp, color, "grasps", i))
+            self.num_grasps += 1
         self.draw(markers)
 
     def bbox(self, frame, bbox):
