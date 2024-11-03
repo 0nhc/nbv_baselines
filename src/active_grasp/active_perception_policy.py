@@ -217,13 +217,27 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
 
         # Visualize Initial Camera Pose
         self.vis_cam_pose(x)
+        self.publish_pointcloud([[0,0,0]])
 
         # When policy hasn't produced an available grasp
         while(self.updated == False):
+            # Clear visualization points
+            self.publish_pointcloud([[0,0,0]])
+
             # Inference with our model
             self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
             ap_input = {'target_pts': self.target_points,
                         'scene_pts': self.scene_points}
+            # save point cloud
+            target_points = self.target_points.cpu().numpy()[0,:,:]
+            scene_points = self.scene_points.cpu().numpy()[0,:,:]
+
+            self.publish_pointcloud(scene_points)
+
+            time.sleep(10000000)
+            np.savetxt("target_points.txt", target_points, delimiter=",")
+            np.savetxt("scene_points.txt", scene_points, delimiter=",")
+
             ap_output = self.ap_inference_engine.inference(ap_input)
             delta_rot_6d = ap_output['estimated_delta_rot_6d']
 
@@ -268,7 +282,12 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                                                       radius=target_points_radius)
             # gsnet_input_points = target_points_list
             # gsnet_input_points = merged_points_list
+            self.publish_pointcloud([[0,0,0]])
             self.publish_pointcloud(gsnet_input_points)
+            
+            # save point cloud as .txt
+            np.savetxt("gsnet_input_points.txt", gsnet_input_points, delimiter=",")
+
             received_points = False
             while(received_points == False): 
                 gsnet_grasping_poses = np.asarray(self.request_grasping_pose(gsnet_input_points))
@@ -320,6 +339,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 self.best_grasp = None
                 self.vis.clear_grasp()
             self.done = True
+            self.publish_pointcloud([[0,0,0]])
     
     def publish_grasps(self, gg):
         marker_array = MarkerArray()
@@ -456,12 +476,14 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 x = x_mat[i][j]
                 y = y_mat[i][j]
                 z = z_mat[i][j]
-                if(int(seg_id) == int(target_id)):
-                    # This pixel belongs to the target object to be grasped
-                    target_points.append([x,y,z])
-                else:
+                
+                # no background and no plane
+                if(int(seg_id) != int(255) and int(seg_id) != int(1)):
                     # This pixel belongs to the scene
                     scene_points.append([x,y,z])
+                    if(int(seg_id) == int(target_id)):
+                        # This pixel belongs to the target object to be grasped
+                        target_points.append([x,y,z])
         
         target_points = np.asarray(target_points)
         target_points = target_points.reshape(1, target_points.shape[0], 3)
