@@ -15,6 +15,7 @@ import time
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Pose
 import tf
+from sklearn.neighbors import NearestNeighbors
 
 import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2, PointField
@@ -493,14 +494,21 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         scene_points = np.asarray(scene_points)
         if scene_sample_num > 0:
             if scene_points.shape[0] < scene_sample_num:
-                scene_sample_num = scene_points.shape[0]
                 print("Scene points are less than the required sample number")
-            scene_points = scene_points[np.random.choice(scene_points.shape[0], scene_sample_num, replace=False)]
+                num_interpolation = scene_sample_num - scene_points.shape[0]
+                scene_points = self.interpolate_point_cloud(scene_points, num_interpolation)
+                print("Interpolated scene points. Shape: "+str(scene_points.shape))
+            else:
+                scene_points = scene_points[np.random.choice(scene_points.shape[0], scene_sample_num, replace=False)]
+
         if target_sample_num > 0:
             if target_points.shape[0] < target_sample_num:
-                target_sample_num = target_points.shape[0]
                 print("Target points are less than the required sample number")
-            target_points = target_points[np.random.choice(target_points.shape[0], target_sample_num, replace=False)]
+                num_interpolation = target_sample_num - target_points.shape[0]
+                target_points = self.interpolate_point_cloud(target_points, num_interpolation)
+                print("Interpolated target points. Shape: "+str(target_points.shape))
+            else:
+                target_points = target_points[np.random.choice(target_points.shape[0], target_sample_num, replace=False)]
 
         # reshape points
         target_points = target_points.reshape(1, target_points.shape[0], 3)
@@ -511,3 +519,17 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         scene_points = torch.from_numpy(scene_points).float().to("cuda:0")
         
         return target_points, scene_points
+
+    def interpolate_point_cloud(self, points, num_new_points):
+        # Fit NearestNeighbors on existing points
+        nbrs = NearestNeighbors(n_neighbors=5).fit(points)
+        interpolated_points = []
+        
+        for _ in range(num_new_points):
+            random_point = points[np.random.choice(len(points))]
+            distances, indices = nbrs.kneighbors([random_point])
+            neighbors = points[indices[0]]
+            new_point = neighbors.mean(axis=0)  # Average of neighbors
+            interpolated_points.append(new_point)
+        
+        return np.vstack([points, interpolated_points])
