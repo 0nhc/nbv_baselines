@@ -1,8 +1,11 @@
-# Roadmap
-* GS-Net filter aligned with VGN
-
 # Updated installation steps fo my PC environment
+## Prerequisites
+* `Ubuntu 20.04`
+* `CUDA 12.1`
+* `ROS Noetic`. Recommended installation method: [小鱼一键安装](https://fishros.org.cn/forum/topic/20/%E5%B0%8F%E9%B1%BC%E7%9A%84%E4%B8%80%E9%94%AE%E5%AE%89%E8%A3%85%E7%B3%BB%E5%88%97/1?lang=en-US)
+* `GS-Net`: My [GS-net repo](https://github.com/0nhc/GS-Net). Run: `python flask_server.py`
 
+## Installation
 ```sh
 # Install Active Grasp
 sudo apt install liborocos-kdl-dev
@@ -24,23 +27,45 @@ rosdep install --from-paths src --ignore-src -r -y
 catkin build
 
 # Install Active Perception
-cd <path-to-your-ws>/src/active_grasp/src/active_grasp/active_perception/modules/module_lib/pointnet2_utils/pointnet2
+cd ws/src/active_grasp/src/active_grasp/active_perception/modules/module_lib/pointnet2_utils/pointnet2
 pip install -e .
 ```
 
-# Updated Features
-* Added our baseline: src/active_grasp/active_perception_policy.py
-* Added RGB and Segmentation image publishers. The segmentation ID 1 corresponds to the grasping target object.
+## Quick Start
+```sh
+# Terminal 1
+conda activate active_grasp
+cd ws
+source devel/setup.bash
+roslaunch active_grasp env.launch sim:=true
+
+# Terminal 2
+conda activate active_grasp
+cd ws
+source devel/setup.bash
+cd src/active_grasp
+python3 scripts/run.py ap-single-view
+```
 
 
-
-
-
-
-
-
-
-
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
 
 # Closed-Loop Next-Best-View Planning for Target-Driven Grasping
 
