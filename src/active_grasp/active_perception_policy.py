@@ -211,7 +211,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         return response.json()
     
 
-    def update(self, img, seg, target_id, x, q):
+    def update(self, img, seg, target_id, support_id, x, q):
         # Visualize scene cloud
         self.vis_scene_cloud(img, x)
 
@@ -225,18 +225,20 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
             self.publish_pointcloud([[0,0,0]])
 
             # Inference with our model
-            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
+            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id, support_id,
+                                                                                 scene_sample_num=16384, 
+                                                                                 target_sample_num=1024)
             ap_input = {'target_pts': self.target_points,
                         'scene_pts': self.scene_points}
             # save point cloud
-            target_points = self.target_points.cpu().numpy()[0,:,:]
+            # target_points = self.target_points.cpu().numpy()[0,:,:]
             scene_points = self.scene_points.cpu().numpy()[0,:,:]
 
             self.publish_pointcloud(scene_points)
 
-            time.sleep(10000000)
-            np.savetxt("target_points.txt", target_points, delimiter=",")
-            np.savetxt("scene_points.txt", scene_points, delimiter=",")
+            # time.sleep(10000000)
+            # np.savetxt("target_points.txt", target_points, delimiter=",")
+            # np.savetxt("scene_points.txt", scene_points, delimiter=",")
 
             ap_output = self.ap_inference_engine.inference(ap_input)
             delta_rot_6d = ap_output['estimated_delta_rot_6d']
@@ -271,7 +273,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         # Policy has produced an available nbv and moved to that camera pose
         if(self.updated == True):
             # Request grasping poses from GSNet
-            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id)
+            self.target_points, self.scene_points = self.depth_image_to_ap_input(img, seg, target_id, support_id)
             target_points_list = np.asarray(self.target_points.cpu().numpy())[0].tolist()
             central_point_of_target = np.mean(target_points_list, axis=0)
             target_points_radius = np.max(np.linalg.norm(target_points_list - central_point_of_target, axis=1))
@@ -450,7 +452,8 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         dst_mat[:3, 3] = new_camera_position_w
         return dst_mat
 
-    def depth_image_to_ap_input(self, depth_img, seg_img, target_id):
+    def depth_image_to_ap_input(self, depth_img, seg_img, target_id, support_id,
+                                scene_sample_num=-1, target_sample_num=-1):
         target_points = []
         scene_points = []
 
@@ -478,18 +481,32 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
                 z = z_mat[i][j]
                 
                 # no background and no plane
-                if(int(seg_id) != int(255) and int(seg_id) != int(1)):
+                if(int(seg_id) != int(255) and int(seg_id) != int(support_id)):
                     # This pixel belongs to the scene
                     scene_points.append([x,y,z])
                     if(int(seg_id) == int(target_id)):
                         # This pixel belongs to the target object to be grasped
                         target_points.append([x,y,z])
         
+        # Sample points
         target_points = np.asarray(target_points)
+        scene_points = np.asarray(scene_points)
+        if scene_sample_num > 0:
+            if scene_points.shape[0] < scene_sample_num:
+                scene_sample_num = scene_points.shape[0]
+                print("Scene points are less than the required sample number")
+            scene_points = scene_points[np.random.choice(scene_points.shape[0], scene_sample_num, replace=False)]
+        if target_sample_num > 0:
+            if target_points.shape[0] < target_sample_num:
+                target_sample_num = target_points.shape[0]
+                print("Target points are less than the required sample number")
+            target_points = target_points[np.random.choice(target_points.shape[0], target_sample_num, replace=False)]
+
+        # reshape points
         target_points = target_points.reshape(1, target_points.shape[0], 3)
         # self.pcdvis.update_points(target_points)
         target_points = torch.from_numpy(target_points).float().to("cuda:0")
-        scene_points = np.asarray(scene_points)
+        
         scene_points = scene_points.reshape(1, scene_points.shape[0], 3)
         scene_points = torch.from_numpy(scene_points).float().to("cuda:0")
         

@@ -45,6 +45,7 @@ class GraspController:
             "controller_manager/switch_controller", SwitchController
         )
         self.get_target_id = rospy.ServiceProxy("get_target_seg_id", TargetID)
+        self.get_support_id = rospy.ServiceProxy("get_support_seg_id", TargetID)
 
     def init_robot_connection(self):
         self.arm = PandaArmClient()
@@ -113,7 +114,8 @@ class GraspController:
             while not self.policy.done:
                 depth_img, seg_image, pose, q = self.get_state()
                 target_seg_id = self.get_target_id(TargetIDRequest()).id
-                self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
+                support_seg_id = self.get_support_id(TargetIDRequest()).id
+                self.policy.update(depth_img, seg_image, target_seg_id, support_seg_id, pose, q)
                 # Wait for the robot to move to its desired camera pose
                 moving_to_The_target = True
                 while(moving_to_The_target):
@@ -134,7 +136,8 @@ class GraspController:
             while not self.policy.done:
                 depth_img, seg_image, pose, q = self.get_state()
                 target_seg_id = self.get_target_id(TargetIDRequest()).id
-                self.policy.update(depth_img, seg_image, target_seg_id, pose, q)
+                support_seg_id = self.get_support_id(TargetIDRequest()).id
+                self.policy.update(depth_img, seg_image, target_seg_id, support_seg_id, pose, q)
                 r.sleep()
         else:
             print("Unsupported policy type: "+str(self.policy.policy_type))

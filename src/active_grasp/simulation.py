@@ -72,6 +72,7 @@ class Simulation:
             q = self.scene.generate(self.rng)
             self.set_arm_configuration(q)
             uid = self.select_target()
+            support_id = self.select_support()
             bbox = self.get_target_bbox(uid)
             valid = True
             # valid = self.check_for_grasps(bbox)
@@ -95,6 +96,10 @@ class Simulation:
         target_uid = uids[np.argmin(counts)]
         p.changeVisualShape(target_uid, -1, rgbaColor=[1, 0, 0, 1])
         return target_uid
+    
+    def select_support(self):
+        support_id = self.scene.support_uid
+        return support_id
 
     def get_target_bbox(self, uid):
         aabb_min, aabb_max = p.getAABB(uid)
@@ -149,6 +154,7 @@ class Scene:
 
     def add_support(self, pos):
         self.support_uid = p.loadURDF(str(self.support_urdf), pos, globalScaling=0.3)
+        print('support id: '+str(self.support_uid))
 
     def remove_support(self):
         p.removeBody(self.support_uid)

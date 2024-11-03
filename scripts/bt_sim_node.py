@@ -74,6 +74,7 @@ class BtSimNode:
             self.switch_controller,
         )
         rospy.Service("get_target_seg_id", TargetID, self.get_target_seg_id)
+        rospy.Service("get_support_seg_id", TargetID, self.get_support_seg_id)
 
     def seed(self, req):
         self.sim.seed(req.seed)
@@ -91,6 +92,11 @@ class BtSimNode:
     def get_target_seg_id(self, req):
         response = TargetIDResponse()
         response.id = self.sim.select_target()
+        return response
+    
+    def get_support_seg_id(self, req):
+        response = TargetIDResponse()
+        response.id = self.sim.select_support()
         return response
 
     def switch_controller(self, req):
