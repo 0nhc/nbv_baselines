@@ -76,6 +76,7 @@ class ActivePerceptionSingleViewPolicy(SingleViewPolicy):
         self.pcdvis = RealTime3DVisualizer()
         self.updated = False
         self._base_url = flask_base_url
+        self.grasp_net_type = 'gsnet'
 
         # For debugging
         self.pcd_publisher = rospy.Publisher('/debug_pcd', PointCloud2, queue_size=10)

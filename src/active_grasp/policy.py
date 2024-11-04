@@ -24,6 +24,7 @@ class Policy:
         self.load_parameters()
         self.init_ik_solver()
         self.init_visualizer()
+        self.grasp_net_type = 'vgn'
 
     def load_parameters(self):
         self.base_frame = rospy.get_param("~base_frame_id")

@@ -38,6 +38,8 @@ class GraspController:
         self.linear_vel = rospy.get_param("~linear_vel")
         self.move_to_target_threshold = rospy.get_param("~move_to_target_threshold")
         self.policy_rate = rospy.get_param("policy/rate")
+        self.gsnet_grasp_offset = np.asarray(rospy.get_param("ap_grasp/gsnet_grasp_offset"))
+        self.gsnet_grasp_offset = Transform.from_matrix(self.gsnet_grasp_offset)
 
     def init_service_proxies(self):
         self.reset_env = rospy.ServiceProxy("reset", Reset)
@@ -177,6 +179,9 @@ class GraspController:
         return np.r_[linear, angular]
 
     def execute_grasp(self, grasp):
+        if self.policy.grasp_net_type == "gsnet":
+            self.T_grasp_ee = self.T_grasp_ee * self.gsnet_grasp_offset
+            
         self.create_collision_scene()
         T_base_grasp = self.postprocess(grasp.pose)
         self.gripper.move(0.08)
@@ -186,7 +191,8 @@ class GraspController:
             self.moveit.scene.clear()
             self.moveit.execute(plan)
             rospy.sleep(0.5)  # Wait for the planning scene to be updated
-            self.moveit.gotoL(T_base_grasp * self.T_grasp_ee)
+            grasp_pose = T_base_grasp * self.T_grasp_ee
+            self.moveit.gotoL(grasp_pose)
             rospy.sleep(0.5)
             self.gripper.grasp()
             T_base_retreat = Transform.t_[0, 0, 0.05] * T_base_grasp * self.T_grasp_ee
