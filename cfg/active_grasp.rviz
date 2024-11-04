@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /TF1/Frames1
         - /Markers1/Namespaces1
+        - /PointCloud21
         - /Marker1
       Splitter Ratio: 0.6852940917015076
     Tree Height: 226
@@ -258,7 +259,6 @@ Visualization Manager:
         bbox: true
         grasp: true
         path: true
-        roi: true
         views: true
       Queue Size: 100
       Value: true
@@ -371,7 +371,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 239; 41; 41
+      Color: 114; 159; 207
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -485,4 +485,4 @@ Window Geometry:
     collapsed: true
   Width: 1095
   X: 1273
-  Y: 90
+  Y: 53
