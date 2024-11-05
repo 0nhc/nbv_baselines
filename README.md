@@ -1,3 +1,7 @@
+# Roadmap
+* Majority Vote
+* Initial Poses for Manual Scenes
+
 # Updated installation steps fo my PC environment
 ## Prerequisites
 * `Ubuntu 20.04`
